@@ -1,3 +1,5 @@
+Here is the updated **Markdown** documentation (v4.0) in English. It now covers the **Drag & Drop** mechanics, the **Dynamic Input** field, and the **Timestamp** features.
+
 ---
 
 # 📓 Secure Notes Pro (v4.0)
@@ -73,6 +75,8 @@ This application has **zero internet access**. Your passwords and notes never pa
 
 ---
 
-**Developed by Yohann Zaoui - 2025**
+**Developed by Your Name - 2025**
 
 ---
+
+Would you like me to add an **Auto-Sort** function (by date or by tag) as a complement to the manual drag-and-drop feature?
