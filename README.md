@@ -1,80 +1,10 @@
-
-# 📓 Secure Vault Notes (v3.0)
-
-A lightweight, privacy-first web application for managing personal notes. This version operates entirely offline, ensuring **total data ownership** with no third-party server involvement.
-
-## 🚀 Key Features
-
-* **🔒 Locked Vault**: Access protected by a Master Password using industry-standard **SHA-256 hashing**.
-* **💾 Hybrid Storage**:
-* **Browser Memory**: Uses LocalStorage for quick, file-free access.
-* **Direct File Link**: The app writes directly to a `.json` or `.xlsx` file on your computer using the File System Access API.
-
-
-* **📂 Multi-format Management**: Real-time sync, import, and export supporting both **JSON** (recommended for speed) and **Excel**.
-* **✍️ Optimized Writing**:
-* **Real-time Character Counter**: Monitor your note length as you type.
-* **Tagging System**: Organize notes with clickable, editable tags.
-* **Color Coding**: 5 distinct colors (including Yellow) to categorize your thoughts.
-
-
-* **🌍 Bilingual Interface**: Toggle instantly between **English** and **French**.
-
----
-
-## 🛠️ Installation & Getting Started
-
-1. **Setup**: Save the three core files (`index.html`, `style.css`, `script.js`) into a single folder.
-2. **Launch**: Open `index.html` in any modern web browser (Chrome, Edge, or Brave are recommended for the "Direct File Link" feature).
-3. **Initialization**: Set your master password on the first run, then select your preferred data destination.
-
----
-
-## 💡 Storage Modes Explained
-
-| Mode | Description | Key Advantage |
-| --- | --- | --- |
-| **Browser Memory** | Data is stored within your browser's internal cache. | No files to manage; instant access. |
-| **Link JSON File** | The app acts as an editor for a specific `.json` file on your drive. | **Maximum Portability**. Your notes are human-readable in any text editor. |
-| **Link Excel File** | Data is synchronized with an Excel spreadsheet. | Perfect for office archiving and advanced data sorting. |
-
----
-
-## ⌨️ Shortcuts & Tips
-
-* **Edit on the fly**: Click directly on the text of an existing note to edit it. Saving is automatic when you click away (on blur).
-* **Rename Tags**: Click on a note's tag badge to rename it instantly across that specific note.
-* **Smart Search**: The search bar filters through both note content and tags simultaneously.
-* **Char Count**: Located right below the text area to help you track the length of your entries.
-
----
-
-## 📋 Data Structure (JSON)
-
-When using the JSON mode, your data is organized as follows:
-
-```json
-[
+📓 Secure Notes Pro (v4.0)A modern, private, and ultra-flexible web application for managing your notes. This version is designed to provide a smooth user experience similar to native apps, while ensuring 100% local privacy.🚀 New Features (v4.0)🖱️ Smart Drag & Drop: Intuitively reorganize your notes. Click and hold a note to move it up or down the list. Your custom order is saved automatically.📏 Dynamic Input Field: The text area expands automatically as you type. No more scrolling inside a tiny box.⏱️ Precision Timestamps: Every note now displays its creation date and time at the bottom of the card.🔢 Real-time Character Counter: A live indicator keeps you informed of your note's length while drafting.🔐 Advanced Security: Local SHA-256 hashing and automatic locking upon closing the tab.💡 Storage ModesModeBest ForBrowser MemoryQuick daily use on a single device.JSON FileRecommended. Best for portability and syncing via cloud services (Dropbox/Drive).Excel FileIdeal for professional archiving and data processing.🛠️ User GuideReorganizing NotesTo change the order, hover over a note (the cursor will change to a hand ✋), click and hold, then drag it over another note. Your custom sorting is preserved even after refreshing the page or exporting data.Quick EditingText: Click directly on the body of a note to edit its content.Tags: Click on the tag badge at the top of the note to rename the category on the fly.Colors: Use the discreet color palette in the top-right corner of each note to change its visual category instantly.📂 Technical StructureThe application is built on a clean three-file architecture:index.html: Interface structure (Bootstrap + Lucide Icons).style.css: Modern design, drag-and-drop animations, and dynamic field styling.script.js: Business logic, sorting algorithms, encryption, and File System Access API integration.📋 JSON SpecificationsIf you choose to manually edit your backup file, please follow this structure:JSON[
   {
-    "id": 1704021000000,
-    "content": "This is an example note.",
-    "tag": "Work",
-    "color": "#f1c40f",
-    "created": "01/01/2025 12:00:00"
+    "id": 1735651200000,
+    "content": "Example of a dynamic note",
+    "tag": "Project",
+    "color": "#3498db",
+    "created": "12/31/2025 12:00:00"
   }
 ]
-
-```
-
----
-
-## 🔒 Security & Privacy
-
-* **Zero Servers**: Your data never leaves your machine. No cloud, no leaks.
-* **Privacy First**: No registration, no accounts, and no tracking scripts.
-* **Hard Reset**: A "Reset All" function in the Security panel allows you to wipe all local data and settings instantly.
-
----
-
-**Developed by Yohann Zaoui - 2025**
-
+🔒 Privacy & TrustThis application has zero internet access. Your passwords and notes never pass through any server. It is a "Zero-Knowledge" tool: you are the sole owner of your data.Developed by Your Name - 2025
