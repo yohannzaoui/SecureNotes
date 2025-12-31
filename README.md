@@ -1,5 +1,5 @@
 🛡️ Secure NoteVault Pro
-Owner & Developer: Your Name
+Owner & Developer: Yohann Zaoui
 
 Version: 2.0 (Bilingual & Hybrid Edition)
 
