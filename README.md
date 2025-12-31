@@ -1,52 +1,52 @@
-🛡️ Bloc-Notes Sécurisé Pro
-Propriétaire & Développeur : Ton Nom
+🛡️ Secure NoteVault Pro
+Owner & Developer: Your Name
 
-Version : 2.0 (Édition Bilingue & Hybride)
+Version: 2.0 (Bilingual & Hybrid Edition)
 
-📝 Présentation
-L'application est un gestionnaire de notes hybride conçu pour offrir une confidentialité totale. Elle permet de capturer, organiser et sécuriser des informations sans jamais dépendre d'un serveur tiers ou d'un cloud. L'utilisateur a le contrôle absolu sur le lieu de stockage de ses données (Navigateur ou Fichier physique).
+📝 Overview
+This application is a hybrid secure note manager designed to provide total privacy. It allows users to capture, organize, and secure information without ever relying on a third-party server or cloud provider. The user has absolute control over where their data is stored (Browser memory or physical Local File).
 
-🚀 Fonctions Clés
-🔐 Sécurité & Confidentialité
-Accès Master : Écran de verrouillage par mot de passe obligatoire au démarrage.
+🚀 Key Features
+🔐 Security & Privacy
+Master Access: Mandatory password lock screen upon startup.
 
-Chiffrement Local : Utilisation de l'algorithme SHA-256 pour le hachage du mot de passe (aucune donnée n'est stockée en clair).
+Crypto Hashing: Uses the SHA-256 algorithm for password hashing (no plain-text passwords are ever stored).
 
-Zéro Serveur : 100% des traitements sont effectués côté client (Edge Computing).
+Zero Server Policy: 100% of data processing is done client-side (Edge Computing), ensuring your data never leaves your machine.
 
-💾 Flexibilité du Stockage (Mode Hybride)
-Mode Local : Sauvegarde dans le LocalStorage du navigateur pour un accès rapide.
+💾 Hybrid Storage Flexibility
+Local Mode: Automatically saves data to the browser's LocalStorage for quick and easy access.
 
-Mode Direct Excel : Liaison directe avec un fichier .xlsx sur votre disque dur. Chaque modification est synchronisée en temps réel dans le fichier via l'API File System Access.
+Direct Excel Mode: Establishes a live link with a .xlsx file on your hard drive. Every change made in the app is synced in real-time to the physical file using the File System Access API.
 
-🎨 Organisation des Notes
-Édition "In-Place" : Modification directe du texte, des tags et des couleurs sans ouvrir de menus complexes.
+🎨 Note Organization
+In-Place Editing: Instantly modify text, tags, and colors directly on the note card without complex menus.
 
-Système de Tags : Catégorisation dynamique avec badges éditables.
+Dynamic Tagging: Categorize notes with clickable and renameable badges.
 
-Codes Couleurs : 5 thèmes visuels pour prioriser les tâches (Urgent, Rappel, Travail, etc.).
+Color Coding: 5 visual themes to prioritize tasks (Urgent, Reminder, Work, etc.).
 
-Recherche Intuitive : Filtrage instantané par mots-clés ou par catégories (tags).
+Smart Search: Instant filtering by keywords or specific tags.
 
-🌍 Outils Avancés
-Interface Bilingue : Bascule instantanée entre le Français et l'Anglais.
+🌍 Advanced Tools
+Bilingual Interface: Toggle the entire UI between French and English with one click.
 
-Import/Export : Possibilité d'injecter ou d'extraire des données massivement via Microsoft Excel.
+Import/Export: Bulk inject or extract data using Microsoft Excel files.
 
-Signature Propriétaire : Identification officielle du créateur dans l'interface et les métadonnées.
+Ownership Branding: Official developer identification integrated into the UI and metadata.
 
-🛠️ Stack Technique
-Langages : HTML5, CSS3 (Bootstrap / Flatly), JavaScript (ES6+).
+🛠️ Technical Stack
+Languages: HTML5, CSS3 (Bootstrap / Flatly), JavaScript (ES6+).
 
-Bibliothèques : * SheetJS (XLSX.js) : Gestion des fichiers Excel.
+Libraries: * SheetJS (XLSX.js): For Excel file manipulation.
 
-Lucide Icons : Bibliothèque d'icônes vectorielles.
+Lucide Icons: For a clean, vector-based visual experience.
 
-Web Crypto API : Pour le hachage sécurisé.
+Web Crypto API: For secure password hashing.
 
-📦 Installation & Utilisation
-Enregistrer les trois fichiers (index.html, style.css, script.js) dans un même dossier.
+📦 Setup & Usage
+Save the three files (index.html, style.css, script.js) in the same folder.
 
-Ouvrir index.html dans un navigateur moderne (Chrome, Edge ou Opera recommandé pour le support du système de fichiers).
+Open index.html in a modern browser (Chrome, Edge, or Opera recommended for full File System support).
 
-Définir un mot de passe au premier lancement.
+Set your master password during the first launch.
