@@ -1,52 +1,86 @@
-🛡️ Secure NoteVault Pro
-Owner & Developer: Yohann Zaoui
+Here is the updated **Markdown** documentation for your application, translated into English and reflecting all the new features (JSON support, character counter, and direct file linking).
 
-Version: 2.0 (Bilingual & Hybrid Edition)
+---
 
-📝 Overview
-This application is a hybrid secure note manager designed to provide total privacy. It allows users to capture, organize, and secure information without ever relying on a third-party server or cloud provider. The user has absolute control over where their data is stored (Browser memory or physical Local File).
+# 📓 Secure Vault Notes (v3.0)
 
-🚀 Key Features
-🔐 Security & Privacy
-Master Access: Mandatory password lock screen upon startup.
+A lightweight, privacy-first web application for managing personal notes. This version operates entirely offline, ensuring **total data ownership** with no third-party server involvement.
 
-Crypto Hashing: Uses the SHA-256 algorithm for password hashing (no plain-text passwords are ever stored).
+## 🚀 Key Features
 
-Zero Server Policy: 100% of data processing is done client-side (Edge Computing), ensuring your data never leaves your machine.
+* **🔒 Locked Vault**: Access protected by a Master Password using industry-standard **SHA-256 hashing**.
+* **💾 Hybrid Storage**:
+* **Browser Memory**: Uses LocalStorage for quick, file-free access.
+* **Direct File Link**: The app writes directly to a `.json` or `.xlsx` file on your computer using the File System Access API.
 
-💾 Hybrid Storage Flexibility
-Local Mode: Automatically saves data to the browser's LocalStorage for quick and easy access.
 
-Direct Excel Mode: Establishes a live link with a .xlsx file on your hard drive. Every change made in the app is synced in real-time to the physical file using the File System Access API.
+* **📂 Multi-format Management**: Real-time sync, import, and export supporting both **JSON** (recommended for speed) and **Excel**.
+* **✍️ Optimized Writing**:
+* **Real-time Character Counter**: Monitor your note length as you type.
+* **Tagging System**: Organize notes with clickable, editable tags.
+* **Color Coding**: 5 distinct colors (including Yellow) to categorize your thoughts.
 
-🎨 Note Organization
-In-Place Editing: Instantly modify text, tags, and colors directly on the note card without complex menus.
 
-Dynamic Tagging: Categorize notes with clickable and renameable badges.
+* **🌍 Bilingual Interface**: Toggle instantly between **English** and **French**.
 
-Color Coding: 5 visual themes to prioritize tasks (Urgent, Reminder, Work, etc.).
+---
 
-Smart Search: Instant filtering by keywords or specific tags.
+## 🛠️ Installation & Getting Started
 
-🌍 Advanced Tools
-Bilingual Interface: Toggle the entire UI between French and English with one click.
+1. **Setup**: Save the three core files (`index.html`, `style.css`, `script.js`) into a single folder.
+2. **Launch**: Open `index.html` in any modern web browser (Chrome, Edge, or Brave are recommended for the "Direct File Link" feature).
+3. **Initialization**: Set your master password on the first run, then select your preferred data destination.
 
-Import/Export: Bulk inject or extract data using Microsoft Excel files.
+---
 
-Ownership Branding: Official developer identification integrated into the UI and metadata.
+## 💡 Storage Modes Explained
 
-🛠️ Technical Stack
-Languages: HTML5, CSS3 (Bootstrap / Flatly), JavaScript (ES6+).
+| Mode | Description | Key Advantage |
+| --- | --- | --- |
+| **Browser Memory** | Data is stored within your browser's internal cache. | No files to manage; instant access. |
+| **Link JSON File** | The app acts as an editor for a specific `.json` file on your drive. | **Maximum Portability**. Your notes are human-readable in any text editor. |
+| **Link Excel File** | Data is synchronized with an Excel spreadsheet. | Perfect for office archiving and advanced data sorting. |
 
-Libraries: * SheetJS (XLSX.js): For Excel file manipulation.
+---
 
-Lucide Icons: For a clean, vector-based visual experience.
+## ⌨️ Shortcuts & Tips
 
-Web Crypto API: For secure password hashing.
+* **Edit on the fly**: Click directly on the text of an existing note to edit it. Saving is automatic when you click away (on blur).
+* **Rename Tags**: Click on a note's tag badge to rename it instantly across that specific note.
+* **Smart Search**: The search bar filters through both note content and tags simultaneously.
+* **Char Count**: Located right below the text area to help you track the length of your entries.
 
-📦 Setup & Usage
-Save the three files (index.html, style.css, script.js) in the same folder.
+---
 
-Open index.html in a modern browser (Chrome, Edge, or Opera recommended for full File System support).
+## 📋 Data Structure (JSON)
 
-Set your master password during the first launch.
+When using the JSON mode, your data is organized as follows:
+
+```json
+[
+  {
+    "id": 1704021000000,
+    "content": "This is an example note.",
+    "tag": "Work",
+    "color": "#f1c40f",
+    "created": "01/01/2025 12:00:00"
+  }
+]
+
+```
+
+---
+
+## 🔒 Security & Privacy
+
+* **Zero Servers**: Your data never leaves your machine. No cloud, no leaks.
+* **Privacy First**: No registration, no accounts, and no tracking scripts.
+* **Hard Reset**: A "Reset All" function in the Security panel allows you to wipe all local data and settings instantly.
+
+---
+
+**Developed by Your Name - 2025**
+
+---
+
+Would you like me to help you create a **Desktop Shortcut** (icon) so you can launch this app just like a professional software?
