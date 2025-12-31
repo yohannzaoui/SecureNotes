@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloc-Notes Sécurisé Pro</title>
+    <link href="https://bootswatch.com/5/flatly/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { background-color: #f4f7f6; }
+        #lockScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2c3e50; z-index: 9999; display: flex;
+            align-items: center; justify-content: center; color: white;
+        }
+        .note-card { border: none; border-left: 6px solid #2c3e50; transition: all 0.3s ease; }
+        .hidden { display: none !important; }
+        .settings-panel { display: none; margin-top: 15px; }
+        .status-badge { font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+<div id="lockScreen">
+    <div class="text-center p-4 bg-white rounded shadow text-dark" style="width: 380px;">
+        <h3 id="lockTitle">Accès Sécurisé</h3>
+        <p id="lockDesc" class="small text-muted">Authentifiez-vous pour continuer.</p>
+        <input type="password" id="passwordInput" class="form-control mb-3 text-center" placeholder="Mot de passe">
+        
+        <div id="authActions">
+            <button class="btn btn-primary w-100 mb-3" onclick="checkPassword()">Déverrouiller</button>
+        </div>
+
+        <div id="sourceSelector" class="source-selector hidden">
+            <hr>
+            <p class="small fw-bold">Source de données :</p>
+            <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="useStorage('local')">🌐 Mémoire Navigateur</button>
+            <button class="btn btn-outline-success btn-sm w-100" onclick="useFileDirect()">📂 Lier un fichier Excel</button>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div id="mainContent" class="row justify-content-center hidden">
+        <div class="col-lg-7 col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="fw-bold text-primary m-0">Mes Notes 🔒</h1>
+                <div>
+                    <button class="btn btn-sm btn-outline-info me-2" onclick="toggleSettings()">⚙️ Sécurité</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">Quitter</button>
+                </div>
+            </div>
+
+            <div id="settingsPanel" class="card shadow-sm border-0 mb-4 settings-panel">
+                <div class="card-body bg-light rounded">
+                    <h6 class="card-title fw-bold text-danger">Sécurité</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5"><input type="password" id="oldPass" class="form-control form-control-sm" placeholder="Ancien MDP"></div>
+                        <div class="col-md-5"><input type="password" id="newPass" class="form-control form-control-sm" placeholder="Nouveau MDP"></div>
+                        <div class="col-md-2"><button class="btn btn-sm btn-success w-100" onclick="updatePassword()">OK</button></div>
+                    </div>
+                    <button class="btn btn-sm btn-danger w-100" onclick="resetApp()">🗑️ Réinitialiser l'application</button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span id="modeBadge" class="badge bg-secondary mb-2 status-badge">Mode : Inconnu</span>
+                <input type="text" id="searchInput" class="form-control rounded-pill" placeholder="🔍 Rechercher..." onkeyup="filterNotes()">
+            </div>
+            
+            <div class="card shadow-sm border-0 mb-5">
+                <div class="card-body p-4">
+                    <textarea id="noteInput" class="form-control mb-3" rows="3" placeholder="Écrire une note..."></textarea>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="btn-group">
+                            <button id="exportBtn" class="btn btn-light border btn-sm" onclick="manualExport()">📤 Exporter</button>
+                            
+                            <button id="importBtn" class="btn btn-light border btn-sm hidden" onclick="document.getElementById('quickImport').click()">📥 Importer</button>
+                            <input type="file" id="quickImport" class="hidden" accept=".xlsx" onchange="importToLocalStorage(event)">
+                        </div>
+                        <button class="btn btn-primary px-4 shadow-sm" onclick="addNote()">✚ Ajouter</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="notesContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
