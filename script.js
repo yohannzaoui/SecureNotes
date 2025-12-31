@@ -22,6 +22,16 @@ const translations = {
     }
 };
 
+// --- GESTION INPUT DYNAMIQUE ---
+function handleInput(el) {
+    // Hauteur automatique
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+    // Compteur
+    document.getElementById('charCount').innerText = el.value.length;
+}
+
+// --- TRADUCTIONS ---
 function updateInterfaceLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -49,12 +59,6 @@ function toggleLanguage() {
     updateInterfaceLanguage();
 }
 
-// --- COMPTEUR ---
-function updateCharCount() {
-    const text = document.getElementById('noteInput').value;
-    document.getElementById('charCount').innerText = text.length;
-}
-
 // --- SECURITÉ ---
 async function hashPassword(p) {
     const m = new TextEncoder().encode(p);
@@ -68,7 +72,7 @@ async function checkPassword() {
     const stored = localStorage.getItem('app_password_hash');
     if (!stored) { localStorage.setItem('app_password_hash', h); unlockAuth(); }
     else if (h === stored) { unlockAuth(); }
-    else { alert("Invalide"); }
+    else { alert("Mot de passe incorrect"); }
 }
 
 function unlockAuth() {
@@ -91,9 +95,11 @@ async function persistData() {
             XLSX.utils.book_append_sheet(wb, ws, "Notes");
             content = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         }
-        const writable = await fileHandle.createWritable();
-        await writable.write(content);
-        await writable.close();
+        try {
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        } catch (e) { console.error("Erreur d'écriture fichier", e); }
     }
 }
 
@@ -107,8 +113,8 @@ async function useFileDirect() {
     try {
         [fileHandle] = await window.showOpenFilePicker({
             types: [
-                { description: 'JSON', accept: {'application/json': ['.json']} },
-                { description: 'Excel', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }
+                { description: 'Base JSON', accept: {'application/json': ['.json']} },
+                { description: 'Fichier Excel', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }
             ]
         });
         const file = await fileHandle.getFile();
@@ -136,9 +142,20 @@ function addNote() {
     const t = document.getElementById('tagInput');
     const c = document.querySelector('input[name="colorOpt"]:checked').value;
     if (!i.value.trim()) return;
-    currentNotes.push({ id: Date.now(), content: i.value, tag: t.value.trim() || "Général", color: c, created: new Date().toLocaleString() });
-    persistData(); 
-    i.value = ''; t.value = ''; 
+
+    currentNotes.push({ 
+        id: Date.now(), 
+        content: i.value, 
+        tag: t.value.trim() || "Général", 
+        color: c, 
+        created: new Date().toLocaleString() 
+    });
+
+    persistData();
+    // Reset
+    i.value = '';
+    i.style.height = 'auto'; 
+    t.value = '';
     document.getElementById('charCount').innerText = "0";
     loadNotes();
 }
@@ -176,51 +193,66 @@ function loadNotes(f = "") {
 async function updateTag(id, v) { const n = currentNotes.find(x => x.id === id); if(n) { n.tag = v.trim(); await persistData(); loadNotes(document.getElementById('searchInput').value); } }
 async function changeColor(id, c) { const n = currentNotes.find(x => x.id === id); if(n) { n.color = c; await persistData(); loadNotes(document.getElementById('searchInput').value); } }
 async function updateNote(id, t) { const n = currentNotes.find(x => x.id === id); if(n && n.content !== t) { n.content = t; await persistData(); } }
-async function deleteNote(id) { if(confirm("Supprimer ?")) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); } }
+async function deleteNote(id) { if(confirm("Supprimer cette note ?")) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); } }
 function filterNotes() { loadNotes(document.getElementById('searchInput').value); }
 
 // --- I/O ---
 function exportJSON() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentNotes, null, 2));
-    const a = document.createElement('a'); a.href = dataStr; a.download = "notes.json"; a.click();
+    const a = document.createElement('a'); a.href = dataStr; a.download = "notes_backup.json"; a.click();
 }
 
 function manualExport() {
     const ws = XLSX.utils.json_to_sheet(currentNotes);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Notes");
-    XLSX.writeFile(wb, "notes.xlsx");
+    XLSX.writeFile(wb, "notes_export.xlsx");
 }
 
 function importFile(e) {
     const f = e.target.files[0];
+    if(!f) return;
     const r = new FileReader();
     r.onload = function(evt) {
         let imp = [];
-        if (f.name.endsWith('.json')) imp = JSON.parse(evt.target.result);
-        else imp = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(evt.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(evt.target.result), {type:'array'}).SheetNames[0]]);
-        imp.forEach(note => {
-            if (!currentNotes.some(n => n.content === (note.content || note.Contenu))) {
-                currentNotes.push({ id: note.id || Date.now(), tag: note.tag || note.Tag || "Import", color: note.color || note.Couleur || "#2c3e50", content: note.content || note.Contenu, created: note.created || note.Creation || new Date().toLocaleString() });
+        try {
+            if (f.name.endsWith('.json')) {
+                imp = JSON.parse(evt.target.result);
+            } else {
+                const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
+                imp = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             }
-        });
-        persistData(); loadNotes();
+            imp.forEach(note => {
+                const content = note.content || note.Contenu;
+                if (!currentNotes.some(n => n.content === content)) {
+                    currentNotes.push({ 
+                        id: note.id || Date.now(), 
+                        tag: note.tag || note.Tag || "Import", 
+                        color: note.color || note.Couleur || "#2c3e50", 
+                        content: content, 
+                        created: note.created || note.Creation || new Date().toLocaleString() 
+                    });
+                }
+            });
+            persistData(); loadNotes();
+        } catch(err) { alert("Erreur lors de l'import."); }
     };
     if (f.name.endsWith('.json')) r.readAsText(f);
     else r.readAsArrayBuffer(f);
 }
 
+// --- CONFIG ---
 function toggleSettings() { const p = document.getElementById('settingsPanel'); p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
 async function updatePassword() {
     const o = document.getElementById('oldPass').value; const n = document.getElementById('newPass').value;
-    if (await hashPassword(o) !== localStorage.getItem('app_password_hash')) return alert("Erreur");
-    localStorage.setItem('app_password_hash', await hashPassword(n)); alert("Succès");
+    if (await hashPassword(o) !== localStorage.getItem('app_password_hash')) return alert("Ancien mot de passe incorrect");
+    localStorage.setItem('app_password_hash', await hashPassword(n)); alert("Mot de passe mis à jour !");
 }
-function resetApp() { if(confirm("Reset?")) { localStorage.clear(); location.reload(); } }
+function resetApp() { if(confirm("Voulez-vous vraiment tout effacer ?")) { localStorage.clear(); location.reload(); } }
 
 window.onload = () => {
     lucide.createIcons();
     if (!localStorage.getItem('app_password_hash')) {
         document.getElementById('lockTitle').innerText = "Bienvenue";
-        document.getElementById('lockDesc').innerText = "Définissez votre mot de passe maître.";
+        document.getElementById('lockDesc').innerText = "Définissez votre mot de passe maître pour commencer.";
     }
 };
