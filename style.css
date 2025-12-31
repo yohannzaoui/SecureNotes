@@ -9,6 +9,15 @@ body { background-color: #f8fafc; min-height: 100vh; font-family: 'Segoe UI', Ta
 .icon-large { width: 50px; height: 50px; }
 .icon-header { width: 32px; height: 32px; }
 .btn-icon { width: 16px; height: 16px; margin-right: 6px; }
+
+/* Textarea Dynamique */
+#noteInput {
+    min-height: 100px;
+    resize: none;
+    overflow: hidden;
+    transition: height 0.1s ease;
+}
+
 .note-text { outline: none; color: #34495e; min-height: 20px; word-break: break-word; line-height: 1.5; white-space: pre-wrap; }
 .tag-edit { cursor: text; padding: 2px 8px; border-radius: 4px; transition: background 0.2s; outline: none; }
 .tag-edit:hover, .tag-edit:focus { background-color: #e2e8f0 !important; color: #2c3e50 !important; }
