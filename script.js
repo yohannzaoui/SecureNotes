@@ -2,53 +2,83 @@ let currentNotes = [];
 let storageMode = "local"; 
 let fileHandle = null;
 let currentLang = localStorage.getItem('app_lang') || 'fr';
+let draggedItemId = null;
 
 const translations = {
     fr: {
         lock_title: "Coffre-fort", lock_desc: "Authentification requise.", unlock_btn: "Déverrouiller",
         source_title: "DESTINATION DES DONNÉES", source_local: "Mémoire Navigateur", source_file: "Lier un fichier JSON/Excel",
-        nav_security: "Sécurité", nav_quit: "Quitter", search_placeholder: "Rechercher une note ou un tag...",
+        nav_security: "Sécurité", nav_quit: "Quitter", search_placeholder: "Rechercher...",
         input_note: "Votre note ici...", input_tag: "Tag", btn_add: "Ajouter", char_label: "caractères",
-        footer_owner: "Propriétaire & Développeur", sec_title: "Sécurité", sec_old: "Ancien MDP", sec_new: "Nouveau MDP", sec_reset: "Tout effacer",
+        sec_title: "Sécurité", sec_old: "Ancien MDP", sec_new: "Nouveau MDP", sec_reset: "Tout effacer",
         badge_local: "Mémoire Navigateur", badge_file: "Fichier Direct"
     },
     en: {
         lock_title: "Safe Vault", lock_desc: "Authentication required.", unlock_btn: "Unlock",
         source_title: "DATA DESTINATION", source_local: "Browser Memory", source_file: "Link JSON/Excel File",
-        nav_security: "Security", nav_quit: "Quit", search_placeholder: "Search notes or tags...",
+        nav_security: "Security", nav_quit: "Quit", search_placeholder: "Search...",
         input_note: "Your note here...", input_tag: "Tag", btn_add: "Add", char_label: "characters",
-        footer_owner: "Owner & Developer", sec_title: "Security Settings", sec_old: "Old Password", sec_new: "New Password", sec_reset: "Reset All",
+        sec_title: "Security Settings", sec_old: "Old Password", sec_new: "New Password", sec_reset: "Reset All",
         badge_local: "Browser Storage", badge_file: "Linked File"
     }
 };
 
-// --- GESTION INPUT DYNAMIQUE ---
+// --- UI DYNAMIQUE ---
 function handleInput(el) {
-    // Hauteur automatique
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px';
-    // Compteur
     document.getElementById('charCount').innerText = el.value.length;
 }
 
-// --- TRADUCTIONS ---
+// --- DRAG & DROP ---
+function dragStart(e, id) { draggedItemId = id; e.target.classList.add('dragging'); }
+function dragEnd(e) { e.target.classList.remove('dragging'); }
+function dragOver(e) { e.preventDefault(); }
+async function drop(e, targetId) {
+    e.preventDefault();
+    if (draggedItemId === targetId) return;
+    const fromIdx = currentNotes.findIndex(n => n.id === draggedItemId);
+    const toIdx = currentNotes.findIndex(n => n.id === targetId);
+    const [item] = currentNotes.splice(fromIdx, 1);
+    currentNotes.splice(toIdx, 0, item);
+    await persistData();
+    loadNotes(document.getElementById('searchInput').value);
+}
+
+// --- AUTH & LANG ---
+async function hashPassword(p) {
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkPassword() {
+    const h = await hashPassword(document.getElementById('passwordInput').value);
+    const stored = localStorage.getItem('app_password_hash');
+    if (!stored) { localStorage.setItem('app_password_hash', h); unlockAuth(); }
+    else if (h === stored) unlockAuth();
+    else alert("Invalide");
+}
+
+function unlockAuth() {
+    document.getElementById('authActions').classList.add('hidden');
+    document.getElementById('sourceSelector').classList.remove('hidden');
+    lucide.createIcons();
+}
+
 function updateInterfaceLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
+        el.innerText = translations[currentLang][key] || el.innerText;
     });
     document.getElementById('searchInput').placeholder = translations[currentLang].search_placeholder;
     document.getElementById('noteInput').placeholder = translations[currentLang].input_note;
     document.getElementById('tagInput').placeholder = translations[currentLang].input_tag;
-    document.getElementById('oldPass').placeholder = translations[currentLang].sec_old;
-    document.getElementById('newPass').placeholder = translations[currentLang].sec_new;
     document.getElementById('langBtnText').innerText = currentLang === 'fr' ? 'EN' : 'FR';
-
+    
     const badge = document.getElementById('modeBadge');
     if(badge) {
-        let icon = storageMode === "local" ? "database" : (fileHandle?.name.endsWith('.json') ? "file-json" : "file-spreadsheet");
         let txt = storageMode === "local" ? translations[currentLang].badge_local : translations[currentLang].badge_file;
-        badge.innerHTML = `<i data-lucide="${icon}" class="btn-icon"></i> ${txt}`;
+        badge.innerHTML = `<i data-lucide="database" class="btn-icon"></i> ${txt}`;
         lucide.createIcons();
     }
 }
@@ -59,130 +89,50 @@ function toggleLanguage() {
     updateInterfaceLanguage();
 }
 
-// --- SECURITÉ ---
-async function hashPassword(p) {
-    const m = new TextEncoder().encode(p);
-    const h = await crypto.subtle.digest('SHA-256', m);
-    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function checkPassword() {
-    const i = document.getElementById('passwordInput');
-    const h = await hashPassword(i.value);
-    const stored = localStorage.getItem('app_password_hash');
-    if (!stored) { localStorage.setItem('app_password_hash', h); unlockAuth(); }
-    else if (h === stored) { unlockAuth(); }
-    else { alert("Mot de passe incorrect"); }
-}
-
-function unlockAuth() {
-    document.getElementById('authActions').classList.add('hidden');
-    document.getElementById('sourceSelector').classList.remove('hidden');
-    lucide.createIcons();
-}
-
-// --- PERSISTANCE ---
+// --- DATA ---
 async function persistData() {
-    if (storageMode === "local") {
-        localStorage.setItem('notes', JSON.stringify(currentNotes));
-    } else if (storageMode === "file" && fileHandle) {
-        let content;
-        if (fileHandle.name.endsWith('.json')) {
-            content = JSON.stringify(currentNotes, null, 2);
-        } else {
-            const ws = XLSX.utils.json_to_sheet(currentNotes);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Notes");
-            content = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        }
-        try {
-            const writable = await fileHandle.createWritable();
-            await writable.write(content);
-            await writable.close();
-        } catch (e) { console.error("Erreur d'écriture fichier", e); }
+    if (storageMode === "local") localStorage.setItem('notes', JSON.stringify(currentNotes));
+    else if (fileHandle) {
+        let data = fileHandle.name.endsWith('.json') ? JSON.stringify(currentNotes, null, 2) : XLSX.write(XLSX.utils.book_append_sheet(XLSX.utils.book_new(), XLSX.utils.json_to_sheet(currentNotes), "Notes"), {bookType:'xlsx', type:'array'});
+        const w = await fileHandle.createWritable(); await w.write(data); await w.close();
     }
 }
 
-function useStorage() {
-    storageMode = "local";
-    currentNotes = JSON.parse(localStorage.getItem('notes') || '[]');
-    launchApp();
-}
-
+function useStorage() { storageMode = "local"; currentNotes = JSON.parse(localStorage.getItem('notes') || '[]'); launchApp(); }
 async function useFileDirect() {
     try {
-        [fileHandle] = await window.showOpenFilePicker({
-            types: [
-                { description: 'Base JSON', accept: {'application/json': ['.json']} },
-                { description: 'Fichier Excel', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }
-            ]
-        });
-        const file = await fileHandle.getFile();
-        if (file.name.endsWith('.json')) {
-            currentNotes = JSON.parse(await file.text() || '[]');
-        } else {
-            const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-            currentNotes = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        }
-        storageMode = "file";
-        launchApp();
-    } catch (e) {}
+        [fileHandle] = await window.showOpenFilePicker();
+        const f = await fileHandle.getFile();
+        currentNotes = f.name.endsWith('.json') ? JSON.parse(await f.text() || '[]') : XLSX.utils.sheet_to_json(XLSX.read(await f.arrayBuffer(), {type:'array'}).Sheets["Notes"]);
+        storageMode = "file"; launchApp();
+    } catch(e) {}
 }
 
-function launchApp() {
-    document.getElementById('lockScreen').classList.add('hidden');
-    document.getElementById('mainContent').classList.remove('hidden');
-    updateInterfaceLanguage();
-    loadNotes();
-}
+function launchApp() { document.getElementById('lockScreen').classList.add('hidden'); document.getElementById('mainContent').classList.remove('hidden'); updateInterfaceLanguage(); loadNotes(); }
 
 // --- CRUD ---
 function addNote() {
     const i = document.getElementById('noteInput');
-    const t = document.getElementById('tagInput');
-    const c = document.querySelector('input[name="colorOpt"]:checked').value;
     if (!i.value.trim()) return;
-
-    currentNotes.push({ 
-        id: Date.now(), 
-        content: i.value, 
-        tag: t.value.trim() || "Général", 
-        color: c, 
-        created: new Date().toLocaleString() 
-    });
-
-    persistData();
-    // Reset
-    i.value = '';
-    i.style.height = 'auto'; 
-    t.value = '';
-    document.getElementById('charCount').innerText = "0";
-    loadNotes();
+    currentNotes.unshift({ id: Date.now(), content: i.value, tag: document.getElementById('tagInput').value || "Général", color: document.querySelector('input[name="colorOpt"]:checked').value, created: new Date().toLocaleString() });
+    persistData(); i.value = ''; i.style.height = 'auto'; document.getElementById('charCount').innerText = "0"; loadNotes();
 }
 
 function loadNotes(f = "") {
     const c = document.getElementById('notesContainer');
-    const filtered = currentNotes.filter(n => (n.content||"").toLowerCase().includes(f.toLowerCase()) || (n.tag||"").toLowerCase().includes(f.toLowerCase()));
-    c.innerHTML = filtered.slice().reverse().map(n => `
-        <div class="card mb-3 shadow-sm note-card" style="border-left-color: ${n.color || '#2c3e50'} !important;">
+    c.innerHTML = currentNotes.filter(n => n.content.toLowerCase().includes(f.toLowerCase()) || n.tag.toLowerCase().includes(f.toLowerCase())).map(n => `
+        <div class="card mb-3 shadow-sm note-card" draggable="true" ondragstart="dragStart(event, ${n.id})" ondragend="dragEnd(event)" ondragover="dragOver(event)" ondrop="drop(event, ${n.id})" style="border-left-color: ${n.color} !important;">
             <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div class="w-100">
-                        <div class="d-flex align-items-center mb-2 gap-2">
-                            <span class="badge bg-light text-muted tag-edit" contenteditable="true" onblur="updateTag(${n.id}, this.innerText)">
-                                <i data-lucide="tag" style="width:10px;"></i>${n.tag}
-                            </span>
-                            <div class="d-flex gap-1 ms-auto opacity-hover">
-                                <div onclick="changeColor(${n.id},'#2c3e50')" class="dot-color" style="background:#2c3e50;"></div>
-                                <div onclick="changeColor(${n.id},'#e74c3c')" class="dot-color" style="background:#e74c3c;"></div>
-                                <div onclick="changeColor(${n.id},'#27ae60')" class="dot-color" style="background:#27ae60;"></div>
-                                <div onclick="changeColor(${n.id},'#f1c40f')" class="dot-color" style="background:#f1c40f;"></div>
-                                <div onclick="changeColor(${n.id},'#3498db')" class="dot-color" style="background:#3498db;"></div>
-                            </div>
-                        </div>
-                        <div class="note-text" contenteditable="true" onblur="updateNote(${n.id}, this.innerText)">${n.content}</div>
+                <div class="d-flex align-items-center mb-2 gap-2">
+                    <span class="badge bg-light text-muted tag-edit" contenteditable="true" onblur="updateTag(${n.id}, this.innerText)">${n.tag}</span>
+                    <div class="d-flex gap-1 ms-auto opacity-hover">
+                        ${['#2c3e50','#e74c3c','#27ae60','#f1c40f','#3498db'].map(col => `<div onclick="changeColor(${n.id},'${col}')" class="dot-color" style="background:${col}"></div>`).join('')}
                     </div>
-                    <button class="btn btn-link text-danger p-0 ms-2 opacity-25" onclick="deleteNote(${n.id})"><i data-lucide="trash-2"></i></button>
+                </div>
+                <div class="note-text" contenteditable="true" onblur="updateNote(${n.id}, this.innerText)">${n.content}</div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-muted" style="font-size: 0.7rem;"><i data-lucide="calendar" style="width:10px;"></i> ${n.created}</small>
+                    <button class="btn btn-link text-danger p-0 opacity-25" onclick="deleteNote(${n.id})"><i data-lucide="trash-2"></i></button>
                 </div>
             </div>
         </div>
@@ -190,69 +140,12 @@ function loadNotes(f = "") {
     lucide.createIcons();
 }
 
-async function updateTag(id, v) { const n = currentNotes.find(x => x.id === id); if(n) { n.tag = v.trim(); await persistData(); loadNotes(document.getElementById('searchInput').value); } }
-async function changeColor(id, c) { const n = currentNotes.find(x => x.id === id); if(n) { n.color = c; await persistData(); loadNotes(document.getElementById('searchInput').value); } }
-async function updateNote(id, t) { const n = currentNotes.find(x => x.id === id); if(n && n.content !== t) { n.content = t; await persistData(); } }
-async function deleteNote(id) { if(confirm("Supprimer cette note ?")) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); } }
+async function updateTag(id, v) { currentNotes.find(x => x.id === id).tag = v; await persistData(); }
+async function changeColor(id, c) { currentNotes.find(x => x.id === id).color = c; await persistData(); loadNotes(); }
+async function updateNote(id, t) { currentNotes.find(x => x.id === id).content = t; await persistData(); }
+async function deleteNote(id) { if(confirm("Supprimer ?")) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); } }
 function filterNotes() { loadNotes(document.getElementById('searchInput').value); }
 
-// --- I/O ---
-function exportJSON() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentNotes, null, 2));
-    const a = document.createElement('a'); a.href = dataStr; a.download = "notes_backup.json"; a.click();
-}
-
-function manualExport() {
-    const ws = XLSX.utils.json_to_sheet(currentNotes);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Notes");
-    XLSX.writeFile(wb, "notes_export.xlsx");
-}
-
-function importFile(e) {
-    const f = e.target.files[0];
-    if(!f) return;
-    const r = new FileReader();
-    r.onload = function(evt) {
-        let imp = [];
-        try {
-            if (f.name.endsWith('.json')) {
-                imp = JSON.parse(evt.target.result);
-            } else {
-                const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
-                imp = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            }
-            imp.forEach(note => {
-                const content = note.content || note.Contenu;
-                if (!currentNotes.some(n => n.content === content)) {
-                    currentNotes.push({ 
-                        id: note.id || Date.now(), 
-                        tag: note.tag || note.Tag || "Import", 
-                        color: note.color || note.Couleur || "#2c3e50", 
-                        content: content, 
-                        created: note.created || note.Creation || new Date().toLocaleString() 
-                    });
-                }
-            });
-            persistData(); loadNotes();
-        } catch(err) { alert("Erreur lors de l'import."); }
-    };
-    if (f.name.endsWith('.json')) r.readAsText(f);
-    else r.readAsArrayBuffer(f);
-}
-
-// --- CONFIG ---
-function toggleSettings() { const p = document.getElementById('settingsPanel'); p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
-async function updatePassword() {
-    const o = document.getElementById('oldPass').value; const n = document.getElementById('newPass').value;
-    if (await hashPassword(o) !== localStorage.getItem('app_password_hash')) return alert("Ancien mot de passe incorrect");
-    localStorage.setItem('app_password_hash', await hashPassword(n)); alert("Mot de passe mis à jour !");
-}
-function resetApp() { if(confirm("Voulez-vous vraiment tout effacer ?")) { localStorage.clear(); location.reload(); } }
-
-window.onload = () => {
-    lucide.createIcons();
-    if (!localStorage.getItem('app_password_hash')) {
-        document.getElementById('lockTitle').innerText = "Bienvenue";
-        document.getElementById('lockDesc').innerText = "Définissez votre mot de passe maître pour commencer.";
-    }
-};
+function toggleSettings() { const s = document.getElementById('settingsPanel'); s.style.display = s.style.display === 'block' ? 'none' : 'block'; }
+function resetApp() { if(confirm("Reset ?")) { localStorage.clear(); location.reload(); } }
+window.onload = () => lucide.createIcons();
