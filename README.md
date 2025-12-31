@@ -1,6 +1,3 @@
-Here is the updated **Markdown** documentation for your application, translated into English and reflecting all the new features (JSON support, character counter, and direct file linking).
-
----
 
 # 📓 Secure Vault Notes (v3.0)
 
@@ -79,8 +76,5 @@ When using the JSON mode, your data is organized as follows:
 
 ---
 
-**Developed by Your Name - 2025**
+**Developed by Yohann Zaoui - 2025**
 
----
-
-Would you like me to help you create a **Desktop Shortcut** (icon) so you can launch this app just like a professional software?
