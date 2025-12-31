@@ -3,35 +3,30 @@ let storageMode = "local";
 let fileHandle = null;
 let currentLang = localStorage.getItem('app_lang') || 'fr';
 
-// --- DICTIONNAIRE ---
 const translations = {
     fr: {
         lock_title: "Coffre-fort", lock_desc: "Authentification requise.", unlock_btn: "Déverrouiller",
-        source_title: "DESTINATION DES DONNÉES", source_local: "Mémoire Navigateur", source_file: "Lier un fichier Excel",
+        source_title: "DESTINATION DES DONNÉES", source_local: "Mémoire Navigateur", source_file: "Lier un fichier JSON/Excel",
         nav_security: "Sécurité", nav_quit: "Quitter", search_placeholder: "Rechercher une note ou un tag...",
-        input_note: "Votre note ici...", input_tag: "Tag", btn_add: "Ajouter",
+        input_note: "Votre note ici...", input_tag: "Tag", btn_add: "Ajouter", char_label: "caractères",
         footer_owner: "Propriétaire & Développeur", sec_title: "Sécurité", sec_old: "Ancien MDP", sec_new: "Nouveau MDP", sec_reset: "Tout effacer",
-        badge_local: "Mémoire Navigateur", badge_file: "Fichier Excel lié"
+        badge_local: "Mémoire Navigateur", badge_file: "Fichier Direct"
     },
     en: {
         lock_title: "Safe Vault", lock_desc: "Authentication required.", unlock_btn: "Unlock",
-        source_title: "DATA DESTINATION", source_local: "Browser Memory", source_file: "Link Excel File",
+        source_title: "DATA DESTINATION", source_local: "Browser Memory", source_file: "Link JSON/Excel File",
         nav_security: "Security", nav_quit: "Quit", search_placeholder: "Search notes or tags...",
-        input_note: "Your note here...", input_tag: "Tag", btn_add: "Add",
+        input_note: "Your note here...", input_tag: "Tag", btn_add: "Add", char_label: "characters",
         footer_owner: "Owner & Developer", sec_title: "Security Settings", sec_old: "Old Password", sec_new: "New Password", sec_reset: "Reset All",
-        badge_local: "Browser Storage", badge_file: "Excel File Linked"
+        badge_local: "Browser Storage", badge_file: "Linked File"
     }
 };
 
-// --- TRADUCTION ---
 function updateInterfaceLanguage() {
-    // Éléments data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
     });
-    
-    // Placeholders
     document.getElementById('searchInput').placeholder = translations[currentLang].search_placeholder;
     document.getElementById('noteInput').placeholder = translations[currentLang].input_note;
     document.getElementById('tagInput').placeholder = translations[currentLang].input_tag;
@@ -39,11 +34,10 @@ function updateInterfaceLanguage() {
     document.getElementById('newPass').placeholder = translations[currentLang].sec_new;
     document.getElementById('langBtnText').innerText = currentLang === 'fr' ? 'EN' : 'FR';
 
-    // Badge dynamique
     const badge = document.getElementById('modeBadge');
-    if(badge && (storageMode === "local" || storageMode === "file")) {
-        const icon = storageMode === "local" ? "database" : "file-check";
-        const txt = storageMode === "local" ? translations[currentLang].badge_local : translations[currentLang].badge_file;
+    if(badge) {
+        let icon = storageMode === "local" ? "database" : (fileHandle?.name.endsWith('.json') ? "file-json" : "file-spreadsheet");
+        let txt = storageMode === "local" ? translations[currentLang].badge_local : translations[currentLang].badge_file;
         badge.innerHTML = `<i data-lucide="${icon}" class="btn-icon"></i> ${txt}`;
         lucide.createIcons();
     }
@@ -55,23 +49,26 @@ function toggleLanguage() {
     updateInterfaceLanguage();
 }
 
-// --- SÉCURITÉ ---
-async function hashPassword(password) {
-    const msgUint8 = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+// --- COMPTEUR ---
+function updateCharCount() {
+    const text = document.getElementById('noteInput').value;
+    document.getElementById('charCount').innerText = text.length;
+}
+
+// --- SECURITÉ ---
+async function hashPassword(p) {
+    const m = new TextEncoder().encode(p);
+    const h = await crypto.subtle.digest('SHA-256', m);
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function checkPassword() {
-    const input = document.getElementById('passwordInput');
-    const storedHash = localStorage.getItem('app_password_hash');
-    const hashedInput = await hashPassword(input.value);
-    if (!storedHash) {
-        localStorage.setItem('app_password_hash', hashedInput);
-        unlockAuth();
-    } else if (hashedInput === storedHash) {
-        unlockAuth();
-    } else { alert("Mot de passe incorrect / Incorrect Password"); }
+    const i = document.getElementById('passwordInput');
+    const h = await hashPassword(i.value);
+    const stored = localStorage.getItem('app_password_hash');
+    if (!stored) { localStorage.setItem('app_password_hash', h); unlockAuth(); }
+    else if (h === stored) { unlockAuth(); }
+    else { alert("Invalide"); }
 }
 
 function unlockAuth() {
@@ -80,8 +77,27 @@ function unlockAuth() {
     lucide.createIcons();
 }
 
-// --- SOURCES ---
-function useStorage(mode) {
+// --- PERSISTANCE ---
+async function persistData() {
+    if (storageMode === "local") {
+        localStorage.setItem('notes', JSON.stringify(currentNotes));
+    } else if (storageMode === "file" && fileHandle) {
+        let content;
+        if (fileHandle.name.endsWith('.json')) {
+            content = JSON.stringify(currentNotes, null, 2);
+        } else {
+            const ws = XLSX.utils.json_to_sheet(currentNotes);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Notes");
+            content = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        }
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+    }
+}
+
+function useStorage() {
     storageMode = "local";
     currentNotes = JSON.parse(localStorage.getItem('notes') || '[]');
     launchApp();
@@ -90,20 +106,21 @@ function useStorage(mode) {
 async function useFileDirect() {
     try {
         [fileHandle] = await window.showOpenFilePicker({
-            types: [{ description: 'Excel', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }]
+            types: [
+                { description: 'JSON', accept: {'application/json': ['.json']} },
+                { description: 'Excel', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }
+            ]
         });
         const file = await fileHandle.getFile();
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        currentNotes = XLSX.utils.sheet_to_json(sheet).map(n => ({
-            id: n.ID || Date.now(), content: String(n.Contenu || ""),
-            tag: String(n.Tag || "Général"), color: String(n.Couleur || "#2c3e50"), created: n.Creation || new Date().toLocaleString()
-        }));
+        if (file.name.endsWith('.json')) {
+            currentNotes = JSON.parse(await file.text() || '[]');
+        } else {
+            const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+            currentNotes = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        }
         storageMode = "file";
-        document.getElementById('modeBadge').className = "badge bg-success mb-3 py-2 px-3 rounded-pill";
         launchApp();
-    } catch (err) { console.log(err); }
+    } catch (e) {}
 }
 
 function launchApp() {
@@ -113,136 +130,97 @@ function launchApp() {
     loadNotes();
 }
 
-// --- ACTIONS ---
-async function persistData() {
-    if (storageMode === "local") {
-        localStorage.setItem('notes', JSON.stringify(currentNotes));
-    } else if (storageMode === "file" && fileHandle) {
-        const data = currentNotes.map(n => ({ "ID": n.id, "Tag": n.tag, "Couleur": n.color, "Contenu": n.content, "Creation": n.created }));
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Notes");
-        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const writable = await fileHandle.createWritable();
-        await writable.write(buf);
-        await writable.close();
-    }
-}
-
+// --- CRUD ---
 function addNote() {
-    const input = document.getElementById('noteInput');
-    const tagInput = document.getElementById('tagInput');
-    const color = document.querySelector('input[name="colorOpt"]:checked').value;
-    if (!input.value.trim()) return;
-    currentNotes.push({ id: Date.now(), content: input.value, tag: tagInput.value.trim() || "Général", color: color, created: new Date().toLocaleString() });
-    persistData(); input.value = ''; tagInput.value = ''; loadNotes();
+    const i = document.getElementById('noteInput');
+    const t = document.getElementById('tagInput');
+    const c = document.querySelector('input[name="colorOpt"]:checked').value;
+    if (!i.value.trim()) return;
+    currentNotes.push({ id: Date.now(), content: i.value, tag: t.value.trim() || "Général", color: c, created: new Date().toLocaleString() });
+    persistData(); 
+    i.value = ''; t.value = ''; 
+    document.getElementById('charCount').innerText = "0";
+    loadNotes();
 }
 
-function loadNotes(filter = "") {
-    const container = document.getElementById('notesContainer');
-    const filtered = currentNotes.filter(n => n.content.toLowerCase().includes(filter.toLowerCase()) || n.tag.toLowerCase().includes(filter.toLowerCase()));
-    
-    container.innerHTML = filtered.slice().reverse().map(note => `
-        <div class="card mb-3 shadow-sm note-card" style="border-left-color: ${note.color || '#2c3e50'} !important;">
+function loadNotes(f = "") {
+    const c = document.getElementById('notesContainer');
+    const filtered = currentNotes.filter(n => (n.content||"").toLowerCase().includes(f.toLowerCase()) || (n.tag||"").toLowerCase().includes(f.toLowerCase()));
+    c.innerHTML = filtered.slice().reverse().map(n => `
+        <div class="card mb-3 shadow-sm note-card" style="border-left-color: ${n.color || '#2c3e50'} !important;">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div class="w-100">
                         <div class="d-flex align-items-center mb-2 gap-2">
-                            <span class="badge bg-light text-muted fw-normal tag-edit" contenteditable="true" onblur="updateTag(${note.id}, this.innerText)">
-                                <i data-lucide="tag" style="width:10px; height:10px; margin-right:4px;"></i>${note.tag}
+                            <span class="badge bg-light text-muted tag-edit" contenteditable="true" onblur="updateTag(${n.id}, this.innerText)">
+                                <i data-lucide="tag" style="width:10px;"></i>${n.tag}
                             </span>
                             <div class="d-flex gap-1 ms-auto opacity-hover">
-                                <div onclick="changeColor(${note.id},'#2c3e50')" class="dot-color" style="background:#2c3e50;"></div>
-                                <div onclick="changeColor(${note.id},'#e74c3c')" class="dot-color" style="background:#e74c3c;"></div>
-                                <div onclick="changeColor(${note.id},'#27ae60')" class="dot-color" style="background:#27ae60;"></div>
-                                <div onclick="changeColor(${note.id},'#f1c40f')" class="dot-color" style="background:#f1c40f;"></div>
-                                <div onclick="changeColor(${note.id},'#3498db')" class="dot-color" style="background:#3498db;"></div>
+                                <div onclick="changeColor(${n.id},'#2c3e50')" class="dot-color" style="background:#2c3e50;"></div>
+                                <div onclick="changeColor(${n.id},'#e74c3c')" class="dot-color" style="background:#e74c3c;"></div>
+                                <div onclick="changeColor(${n.id},'#27ae60')" class="dot-color" style="background:#27ae60;"></div>
+                                <div onclick="changeColor(${n.id},'#f1c40f')" class="dot-color" style="background:#f1c40f;"></div>
+                                <div onclick="changeColor(${n.id},'#3498db')" class="dot-color" style="background:#3498db;"></div>
                             </div>
                         </div>
-                        <div class="note-text" contenteditable="true" onblur="updateNote(${note.id}, this.innerText)">${note.content}</div>
+                        <div class="note-text" contenteditable="true" onblur="updateNote(${n.id}, this.innerText)">${n.content}</div>
                     </div>
-                    <button class="btn btn-link text-danger p-0 ms-2 opacity-25" onclick="deleteNote(${note.id})"><i data-lucide="trash-2"></i></button>
+                    <button class="btn btn-link text-danger p-0 ms-2 opacity-25" onclick="deleteNote(${n.id})"><i data-lucide="trash-2"></i></button>
                 </div>
-                <div class="text-muted small mt-3 pt-2 border-top"><i data-lucide="calendar" style="width:12px;"></i> ${note.created}</div>
             </div>
         </div>
     `).join('');
     lucide.createIcons();
 }
 
-async function updateTag(id, val) {
-    const n = currentNotes.find(x => x.id === id);
-    if(n) { n.tag = val.trim() || "Général"; await persistData(); loadNotes(document.getElementById('searchInput').value); }
-}
-
-async function changeColor(id, col) {
-    const n = currentNotes.find(x => x.id === id);
-    if(n) { n.color = col; await persistData(); loadNotes(document.getElementById('searchInput').value); }
-}
-
-async function updateNote(id, txt) {
-    const n = currentNotes.find(x => x.id === id);
-    if(n && n.content !== txt) { n.content = txt; await persistData(); }
-}
-
-async function deleteNote(id) {
-    const msg = currentLang === 'fr' ? "Supprimer ?" : "Delete ?";
-    if(confirm(msg)) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); }
-}
-
+async function updateTag(id, v) { const n = currentNotes.find(x => x.id === id); if(n) { n.tag = v.trim(); await persistData(); loadNotes(document.getElementById('searchInput').value); } }
+async function changeColor(id, c) { const n = currentNotes.find(x => x.id === id); if(n) { n.color = c; await persistData(); loadNotes(document.getElementById('searchInput').value); } }
+async function updateNote(id, t) { const n = currentNotes.find(x => x.id === id); if(n && n.content !== t) { n.content = t; await persistData(); } }
+async function deleteNote(id) { if(confirm("Supprimer ?")) { currentNotes = currentNotes.filter(x => x.id !== id); await persistData(); loadNotes(); } }
 function filterNotes() { loadNotes(document.getElementById('searchInput').value); }
 
-function manualExport() {
-    const dataToExport = currentNotes.map(n => ({ "ID": n.id, "Tag": n.tag, "Couleur": n.color, "Contenu": n.content, "Creation": n.created }));
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Notes");
-    XLSX.writeFile(wb, "MyNotes_Export.xlsx");
+// --- I/O ---
+function exportJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentNotes, null, 2));
+    const a = document.createElement('a'); a.href = dataStr; a.download = "notes.json"; a.click();
 }
 
-function importExcel(e) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, {type:'array'});
-        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        json.forEach(row => {
-            // Évite les doublons exacts si en mode local
-            if (!currentNotes.some(n => n.content === row.Contenu)) {
-                currentNotes.push({ 
-                    id: row.ID || Date.now() + Math.random(), 
-                    tag: row.Tag || "Import", 
-                    color: row.Couleur || "#2c3e50", 
-                    content: row.Contenu || "", 
-                    created: row.Creation || new Date().toLocaleString() 
-                });
+function manualExport() {
+    const ws = XLSX.utils.json_to_sheet(currentNotes);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Notes");
+    XLSX.writeFile(wb, "notes.xlsx");
+}
+
+function importFile(e) {
+    const f = e.target.files[0];
+    const r = new FileReader();
+    r.onload = function(evt) {
+        let imp = [];
+        if (f.name.endsWith('.json')) imp = JSON.parse(evt.target.result);
+        else imp = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(evt.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(evt.target.result), {type:'array'}).SheetNames[0]]);
+        imp.forEach(note => {
+            if (!currentNotes.some(n => n.content === (note.content || note.Contenu))) {
+                currentNotes.push({ id: note.id || Date.now(), tag: note.tag || note.Tag || "Import", color: note.color || note.Couleur || "#2c3e50", content: note.content || note.Contenu, created: note.created || note.Creation || new Date().toLocaleString() });
             }
         });
         persistData(); loadNotes();
-        alert(currentLang === 'fr' ? "Import réussi !" : "Import Successful!");
     };
-    reader.readAsArrayBuffer(e.target.files[0]);
+    if (f.name.endsWith('.json')) r.readAsText(f);
+    else r.readAsArrayBuffer(f);
 }
 
-function toggleSettings() {
-    const p = document.getElementById('settingsPanel');
-    p.style.display = (p.style.display === 'block') ? 'none' : 'block';
-}
-
+function toggleSettings() { const p = document.getElementById('settingsPanel'); p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
 async function updatePassword() {
-    const oldP = document.getElementById('oldPass').value;
-    const newP = document.getElementById('newPass').value;
-    const currentHash = localStorage.getItem('app_password_hash');
-    if (await hashPassword(oldP) !== currentHash) return alert("Error");
-    localStorage.setItem('app_password_hash', await hashPassword(newP));
-    alert("Success"); toggleSettings();
+    const o = document.getElementById('oldPass').value; const n = document.getElementById('newPass').value;
+    if (await hashPassword(o) !== localStorage.getItem('app_password_hash')) return alert("Erreur");
+    localStorage.setItem('app_password_hash', await hashPassword(n)); alert("Succès");
 }
-
 function resetApp() { if(confirm("Reset?")) { localStorage.clear(); location.reload(); } }
 
 window.onload = () => {
     lucide.createIcons();
     if (!localStorage.getItem('app_password_hash')) {
-        document.getElementById('lockTitle').innerText = "Welcome";
-        document.getElementById('lockDesc').innerText = "Set your master password.";
+        document.getElementById('lockTitle').innerText = "Bienvenue";
+        document.getElementById('lockDesc').innerText = "Définissez votre mot de passe maître.";
     }
 };
