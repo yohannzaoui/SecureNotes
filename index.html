@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="author" content="Ton Nom">
-    <title>Bloc-Notes Sécurisé | Par Ton Nom</title>
+    <title>Bloc-Notes Pro | Sécurisé</title>
     <link href="https://bootswatch.com/5/flatly/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -78,7 +77,7 @@
                 <div class="card-body p-4 bg-white">
                     <div class="row g-2 mb-3">
                         <div class="col-md-9">
-                            <textarea id="noteInput" class="form-control border-0 bg-light p-3" placeholder="Votre note..." oninput="handleInput(this)"></textarea>
+                            <textarea id="noteInput" class="form-control border-0 bg-light p-3" oninput="handleInput(this)"></textarea>
                             <div class="text-end small text-muted mt-1">
                                 <span id="charCount">0</span> <span data-i18n="char_label">caractères</span>
                             </div>
@@ -86,7 +85,7 @@
                         <div class="col-md-3">
                             <div class="input-group mb-2">
                                 <span class="input-group-text bg-light border-0"><i data-lucide="hash" style="width:14px;"></i></span>
-                                <input type="text" id="tagInput" class="form-control border-0 bg-light" placeholder="Tag">
+                                <input type="text" id="tagInput" class="form-control border-0 bg-light">
                             </div>
                             <div class="color-picker-container">
                                 <input type="radio" name="colorOpt" class="color-radio" value="#2c3e50" style="background-color: #2c3e50;" checked>
@@ -110,14 +109,6 @@
             </div>
 
             <div id="notesContainer"></div>
-
-            <footer class="text-center mt-5 pb-3">
-                <hr class="w-25 mx-auto opacity-25">
-                <p class="text-muted small">
-                    <i data-lucide="copyright" class="btn-icon" style="width: 12px;"></i> 
-                    2025 - <strong>Ton Nom</strong> | <span data-i18n="footer_owner">Propriétaire & Développeur</span>
-                </p>
-            </footer>
         </div>
     </div>
 </div>
